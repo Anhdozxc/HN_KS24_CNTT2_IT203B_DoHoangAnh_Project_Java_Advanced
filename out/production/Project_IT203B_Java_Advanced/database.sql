@@ -82,9 +82,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     FOREIGN KEY (support_staff_id) REFERENCES users(id) ON DELETE SET NULL
 ) COMMENT 'Bảng quản lý đặt phòng';
 
--- =====================================================
 -- BẢNG CHI TIẾT DỊCH VỤ ĐẶT PHÒNG (Booking_Services)
--- =====================================================
 CREATE TABLE IF NOT EXISTS booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
@@ -94,9 +92,7 @@ CREATE TABLE IF NOT EXISTS booking_services (
     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 ) COMMENT 'Bảng chi tiết dịch vụ của mỗi đặt phòng';
 
--- =====================================================
 -- BẢNG CHI TIẾT THIẾT BỊ ĐẶT PHÒNG (Booking_Equipment)
--- =====================================================
 CREATE TABLE IF NOT EXISTS booking_equipment (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
