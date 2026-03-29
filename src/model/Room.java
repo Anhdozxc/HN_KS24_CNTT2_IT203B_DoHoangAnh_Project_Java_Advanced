@@ -97,7 +97,7 @@ public class Room {
 
     @Override
     public String toString() {
-        return "🚪 Phòng: " + name + " | Sức chứa: " + capacity + " người | Vị trí: " + location +
+        return "Phòng: " + name + " | Sức chứa: " + capacity + " người | Vị trí: " + location +
                 " | Thiết bị: " + fixedEquipment + " | Trạng thái: " + status;
     }
 }

@@ -99,9 +99,8 @@ public class ValidationUtil {
         return isTimeNotInPast(startTime);
     }
 
-    //  KIỂM TRA SỨC CHỨA PHÒNG
     /**
-     * Kiểm tra số người tham dự có hợp lệ
+     * Kiểm tra số lượng người tham dự có hợp lệ không
      */
     public static boolean isParticipantCountValid(int participantCount, int roomCapacity) {
         return participantCount > 0 && participantCount <= roomCapacity;

@@ -73,6 +73,25 @@ public class RoomService {
         return roomDao.updateRoomStatus(roomId, status);
     }
 
+    /**
+     * Cập nhật sức chứa phòng
+     */
+    public boolean updateRoomCapacity(int roomId, int newCapacity) {
+        if (!ValidationUtil.isPositive(newCapacity)) {
+            System.out.println("Lỗi: Sức chứa phải lớn hơn 0");
+            return false;
+        }
+        
+        Room room = roomDao.getRoomById(roomId);
+        if (room == null) {
+            System.out.println("Lỗi: Phòng không tồn tại");
+            return false;
+        }
+        
+        room.setCapacity(newCapacity);
+        return roomDao.updateRoom(room);
+    }
+
     // LẤY THÔNG TIN PHÒNG
     /**
      * Lấy danh sách tất cả phòng

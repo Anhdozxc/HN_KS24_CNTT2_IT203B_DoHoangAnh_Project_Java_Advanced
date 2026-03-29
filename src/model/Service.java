@@ -86,7 +86,7 @@ public class Service {
 
     @Override
     public String toString() {
-        return "☕ " + name + " | Giá: " + price + " | " + description + " | Trạng thái: " + status;
+        return "Dịch vụ: " + name + " | Giá: " + price + " | " + description + " | Trạng thái: " + status;
     }
 }
 

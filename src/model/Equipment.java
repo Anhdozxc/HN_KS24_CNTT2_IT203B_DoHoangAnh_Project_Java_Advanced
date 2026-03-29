@@ -86,7 +86,7 @@ public class Equipment {
 
     @Override
     public String toString() {
-        return "🔧 " + name + " | Tổng: " + totalQuantity + " | Khả dụng: " + availableQuantity +
+        return "Thiết bị: " + name + " | Tổng: " + totalQuantity + " | Khả dụng: " + availableQuantity +
                 " | Trạng thái: " + status;
     }
 }

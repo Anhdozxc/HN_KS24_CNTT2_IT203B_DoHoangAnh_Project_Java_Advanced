@@ -5,6 +5,7 @@ import service.*;
 import util.InputUtil;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class EmployeeMenu {
@@ -29,19 +30,20 @@ public class EmployeeMenu {
     public void showMenu() {
         while (true) {
             System.out.println("\n========================================");
-            System.out.println("  MENU NHAN VIEN");
+            System.out.println("  MENU NHÂN VIÊN");
             System.out.println("========================================");
-            System.out.println("Xin chao: " + currentUser.getFullname());
+            System.out.println("Xin chào: " + currentUser.getFullname());
 
-            System.out.println("1. Dat phong moi");
-            System.out.println("2. Xem lich cua toi");
-            System.out.println("3. Huy lich");
-            System.out.println("4. Xem phong kha dung");
-            System.out.println("5. Xem dich vu");
-            System.out.println("6. Cap nhat ho so");
-            System.out.println("7. Dang xuat");
+            System.out.println("\n-- Các chức năng --");
+            System.out.println("1. Đặt phòng mới");
+            System.out.println("2. Xem lịch đặt phòng của tôi");
+            System.out.println("3. Hủy lịch đặt phòng");
+            System.out.println("4. Xem phòng khả dụng");
+            System.out.println("5. Xem dịch vụ");
+            System.out.println("6. Cập nhật thông tin cá nhân");
+            System.out.println("7. Đăng xuất");
 
-            int choice = InputUtil.inputChoice("Nhap lua chon: ", 1, 7);
+            int choice = InputUtil.inputChoice("\nNhập lựa chọn: ", 1, 7);
 
             switch (choice) {
                 case 1:
@@ -63,102 +65,233 @@ public class EmployeeMenu {
                     showProfileUpdate();
                     break;
                 case 7:
+                    System.out.println(" Đã đăng xuất. Tạm biệt!");
                     return;
             }
         }
     }
 
     private void createNewBooking() {
-        System.out.println("\n===== DAT PHONG =====");
+        System.out.println("\n===== ĐẶT PHÒNG MỚI =====");
 
+        // Lấy danh sách phòng khả dụng
         List<Room> rooms = roomService.getAvailableRooms();
         if (rooms.isEmpty()) {
-            System.out.println("Khong co phong");
+            System.out.println("Lỗi: Không có phòng khả dụng!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
             return;
         }
 
+        // Hiển thị danh sách phòng
+        System.out.println("\nCác phòng khả dụng:");
         for (Room r : rooms) {
-            System.out.println(r.getId() + " - " + r.getName());
+            System.out.println("ID: " + r.getId() + " - " + r.getName() + 
+                             " (Sức chứa: " + r.getCapacity() + ", Vị trí: " + r.getLocation() + ")");
         }
 
-        int roomId = InputUtil.inputPositiveInt("Chon phong: ");
+        // Chọn phòng
+        int roomId = InputUtil.inputPositiveInt("\nChọn ID phòng: ");
+        
+        Room selectedRoom = roomService.getRoomById(roomId);
+        if (selectedRoom == null || !"AVAILABLE".equals(selectedRoom.getStatus())) {
+            System.out.println("Lỗi: Phòng không tồn tại hoặc không khả dụng!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
 
-        LocalDateTime start = InputUtil.inputDateTime("Bat dau: ");
-        LocalDateTime end = InputUtil.inputDateTime("Ket thuc: ");
+        // Nhập thời gian
+        System.out.println("\nNhập thời gian đặt (định dạng: yyyy-MM-dd HH:mm)");
+        LocalDateTime startTime = InputUtil.inputDateTime("Thời gian bắt đầu: ");
+        LocalDateTime endTime = InputUtil.inputDateTime("Thời gian kết thúc: ");
 
-        int count = InputUtil.inputPositiveInt("So nguoi: ");
-        String note = InputUtil.inputNonEmptyString("Ghi chu: ");
+        // Nhập số người
+        System.out.println("Sức chứa phòng: " + selectedRoom.getCapacity() + " người");
+        int participantCount = InputUtil.inputPositiveInt("Số người tham dự: ");
 
+        // Nhập ghi chú
+        String notes = InputUtil.inputNonEmptyString("Ghi chú (có thể bỏ qua): ");
+
+        // Tạo booking
         int bookingId = bookingService.createBooking(
-                currentUser.getId(), roomId, start, end, count, note
+                currentUser.getId(), roomId, startTime, endTime, participantCount, 
+                notes != null && !notes.isEmpty() ? notes : ""
         );
 
-        if (bookingId <= 0) {
-            System.out.println("That bai");
+        if (bookingId > 0) {
+            System.out.println("Thành công: Đặt phòng ID: " + bookingId);
+            System.out.println("Trạng thái: PENDING (chờ duyệt)");
         } else {
-            System.out.println("Thanh cong ID = " + bookingId);
+            System.out.println("Lỗi: Đặt phòng thất bại! Vui lòng kiểm tra lại thông tin.");
         }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void viewMyBookings() {
-        List<Booking> list = bookingService.getBookingsByUserId(currentUser.getId());
-
-        for (Booking b : list) {
-            System.out.println(b.getId() + " - " + b.getStatus());
+        System.out.println("\n===== LỊCH ĐẶT PHÒNG CỦA TÔI =====");
+        
+        List<Booking> bookings = bookingService.getBookingsByUserId(currentUser.getId());
+        
+        if (bookings.isEmpty()) {
+            System.out.println("\nBạn chưa có phiếu đặt phòng nào");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
         }
+
+        for (Booking booking : bookings) {
+            Room room = roomService.getRoomById(booking.getRoomId());
+            
+            System.out.println("\n" + "-".repeat(50));
+            System.out.println("ID: " + booking.getId());
+            System.out.println("Phòng: " + (room != null ? room.getName() : "N/A"));
+            System.out.println("Từ: " + booking.getStartTime().format(dateFormatter));
+            System.out.println("Đến: " + booking.getEndTime().format(dateFormatter));
+            System.out.println("Số người: " + booking.getParticipantCount());
+            System.out.println("Trạng thái: " + booking.getStatus());
+            if (booking.getNotes() != null && !booking.getNotes().isEmpty()) {
+                System.out.println("Ghi chú: " + booking.getNotes());
+            }
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void cancelBooking() {
-        int id = InputUtil.inputPositiveInt("ID can huy: ");
+        System.out.println("\n===== HỦY LỊCH ĐẶT PHÒNG =====");
+        
+        List<Booking> bookings = bookingService.getBookingsByUserId(currentUser.getId());
+        
+        // Lọc chỉ hiển thị booking PENDING
+        List<Booking> pendingBookings = new ArrayList<>();
+        for (Booking b : bookings) {
+            if ("PENDING".equals(b.getStatus())) {
+                pendingBookings.add(b);
+            }
+        }
+        
+        if (pendingBookings.isEmpty()) {
+            System.out.println("Không có lịch đặt phòng ở trạng thái PENDING để hủy!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
 
-        boolean ok = bookingService.cancelBooking(id);
-        System.out.println(ok ? "Thanh cong" : "That bai");
+        System.out.println("Các lịch đặt có thể hủy:");
+        for (Booking b : pendingBookings) {
+            Room room = roomService.getRoomById(b.getRoomId());
+            System.out.println("ID: " + b.getId() + " - " + (room != null ? room.getName() : "N/A") +
+                             " (" + b.getStartTime().format(dateFormatter) + ")");
+        }
+
+        int bookingId = InputUtil.inputPositiveInt("\nNhập ID lịch cần hủy: ");
+        
+        if (bookingService.cancelBooking(bookingId)) {
+            System.out.println("Thành công: Đã hủy lịch đặt phòng!");
+        } else {
+            System.out.println("Lỗi: Hủy lịch thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void viewAvailableRooms() {
-        List<Room> list = roomService.getAvailableRooms();
-
-        for (Room r : list) {
-            System.out.println(r.getId() + " - " + r.getName());
+        System.out.println("\n===== DANH SÁCH PHÒNG KHẢ DỤNG =====");
+        
+        List<Room> rooms = roomService.getAvailableRooms();
+        
+        if (rooms.isEmpty()) {
+            System.out.println("\nKhông có phòng khả dụng!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
         }
+
+        for (Room room : rooms) {
+            System.out.println("\n" + "-".repeat(50));
+            System.out.println("ID: " + room.getId());
+            System.out.println("Tên: " + room.getName());
+            System.out.println("Sức chứa: " + room.getCapacity() + " người");
+            System.out.println("Vị trí: " + room.getLocation());
+            System.out.println("Thiết bị cố định: " + room.getFixedEquipment());
+            System.out.println("Trạng thái: " + room.getStatus());
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void viewAvailableServices() {
-        List<Service> list = serviceService.getActiveServices();
-
-        for (Service s : list) {
-            System.out.println(s.getId() + " - " + s.getName());
+        System.out.println("\n===== DANH SÁCH DỊCH VỤ =====");
+        
+        List<Service> services = serviceService.getAllServices();
+        
+        if (services.isEmpty()) {
+            System.out.println("\nKhông có dịch vụ nào!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
         }
+
+        for (Service service : services) {
+            System.out.println("\n" + "-".repeat(50));
+            System.out.println("ID: " + service.getId());
+            System.out.println("Tên: " + service.getName());
+            System.out.println("Giá: " + service.getPrice());
+            System.out.println("Mô tả: " + service.getDescription());
+            System.out.println("Trạng thái: " + service.getStatus());
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void showProfileUpdate() {
-        System.out.println("\n===== CAP NHAT =====");
+        while (true) {
+            System.out.println("\n===== CẬP NHẬT THÔNG TIN CÁ NHÂN =====");
+            System.out.println("1. Cập nhật hồ sơ");
+            System.out.println("2. Đổi mật khẩu");
+            System.out.println("0. Quay lại");
 
-        System.out.println("1. Sua thong tin");
-        System.out.println("2. Doi mat khau");
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 2);
 
-        int choice = InputUtil.inputChoice("Chon: ", 1, 2);
-
-        if (choice == 1) updateProfile();
-        else changePassword();
+            if (choice == 1) {
+                updateProfile();
+            } else if (choice == 2) {
+                changePassword();
+            } else {
+                break;
+            }
+        }
     }
 
     private void updateProfile() {
-        String name = InputUtil.inputNonEmptyString("Ten: ");
-        String phone = InputUtil.inputNonEmptyString("Phone: ");
-        String dep = InputUtil.inputNonEmptyString("Department: ");
+        System.out.println("\n===== CẬP NHẬT HỒ SƠ =====");
+        System.out.println("Tên hiện tại: " + currentUser.getFullname());
+        System.out.println("Điện thoại hiện tại: " + currentUser.getPhone());
+        System.out.println("Phòng ban hiện tại: " + currentUser.getDepartment());
+        
+        String name = InputUtil.inputFullName("Tên mới: ");
+        String phone = InputUtil.inputPhone("Điện thoại mới: ");
+        String department = InputUtil.inputNonEmptyString("Phòng ban mới: ");
 
-        boolean ok = userService.updateProfile(currentUser.getId(), name, phone, dep);
-
-        System.out.println(ok ? "Thanh cong" : "That bai");
+        if (userService.updateProfile(currentUser.getId(), name, phone, department)) {
+            System.out.println("Thành công: Cập nhật hồ sơ!");
+            currentUser.setFullname(name);
+            currentUser.setPhone(phone);
+            currentUser.setDepartment(department);
+        } else {
+            System.out.println("Lỗi: Cập nhật thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void changePassword() {
-        String oldPass = InputUtil.inputNonEmptyString("Old: ");
-        String newPass = InputUtil.inputNonEmptyString("New: ");
+        System.out.println("\n===== ĐỔI MẬT KHẨU =====");
+        String oldPassword = InputUtil.inputPassword("Mật khẩu cũ: ");
+        String newPassword = InputUtil.inputPassword("Mật khẩu mới: ");
+        String confirmPassword = InputUtil.inputPassword("Xác nhận mật khẩu mới: ");
 
-        boolean ok = userService.changePassword(currentUser.getId(), oldPass, newPass);
+        if (!newPassword.equals(confirmPassword)) {
+            System.out.println("Lỗi: Mật khẩu xác nhận không khớp!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
 
-        System.out.println(ok ? "Thanh cong" : "That bai");
+        if (userService.changePassword(currentUser.getId(), oldPassword, newPassword)) {
+            System.out.println("Thành công: Đổi mật khẩu!");
+        } else {
+            System.out.println("Lỗi: Đổi mật khẩu thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 }
