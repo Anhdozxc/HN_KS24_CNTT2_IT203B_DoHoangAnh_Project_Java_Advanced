@@ -54,8 +54,8 @@ public class MainMenu {
         System.out.println("========================================");
         
         String username = InputUtil.inputUsername("\nTên đăng nhập (3-20 ký tự): ");
-        String password = InputUtil.inputPassword("Mật khẩu (tối thiểu 6 ký tự): ");
-        String passwordConfirm = InputUtil.inputPassword("Xác nhận mật khẩu: ");
+        String password = InputUtil.inputPasswordMasked("Mật khẩu (tối thiểu 6 ký tự): ");
+        String passwordConfirm = InputUtil.inputPasswordMasked("Xác nhận mật khẩu: ");
         
         if (!password.equals(passwordConfirm)) {
             System.out.println("Lỗi: Mật khẩu xác nhận không khớp!");
@@ -84,7 +84,7 @@ public class MainMenu {
         System.out.println("========================================");
         
         String username = InputUtil.inputNonEmptyString("\nTên đăng nhập: ");
-        String password = InputUtil.inputNonEmptyString("Mật khẩu: ");
+        String password = InputUtil.inputPasswordMasked("Mật khẩu: ");
         
         User user = userService.login(username, password);
         

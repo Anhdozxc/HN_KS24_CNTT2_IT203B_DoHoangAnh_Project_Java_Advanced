@@ -204,9 +204,9 @@ public class SupportStaffMenu {
     }
 
     private void changePassword() {
-        String oldPassword = InputUtil.inputPassword("Mật khẩu cũ: ");
-        String newPassword = InputUtil.inputPassword("Mật khẩu mới: ");
-        String confirmPassword = InputUtil.inputPassword("Xác nhận mật khẩu mới: ");
+        String oldPassword = InputUtil.inputPasswordMasked("Mật khẩu cũ: ");
+        String newPassword = InputUtil.inputPasswordMasked("Mật khẩu mới: ");
+        String confirmPassword = InputUtil.inputPasswordMasked("Xác nhận mật khẩu mới: ");
         
         if (!newPassword.equals(confirmPassword)) {
             System.out.println("Lỗi: Mật khẩu xác nhận không khớp!");

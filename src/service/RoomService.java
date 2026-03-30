@@ -3,6 +3,7 @@ package service;
 import dao.RoomDao;
 import model.Room;
 import util.ValidationUtil;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -152,6 +153,15 @@ public class RoomService {
     public int getTotalRooms() {
         return roomDao.getTotalRooms();
     }
+
+    /**
+     * Tìm kiếm phòng theo tên
+     */
+    public List<Room> searchRoomByName(String keyword) {
+        if (!ValidationUtil.isNotEmpty(keyword)) {
+            System.out.println("Lỗi: Từ khóa tìm kiếm không được để trống");
+            return new ArrayList<>();
+        }
+        return roomDao.searchRoomByName(keyword);
+    }
 }
-
-

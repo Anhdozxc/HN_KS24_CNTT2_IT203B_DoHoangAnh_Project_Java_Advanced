@@ -263,6 +263,26 @@ public class RoomDao {
         
         return new Room(id, name, capacity, location, fixedEquipment, status, createdDate);
     }
+
+    /**
+     * Tìm kiếm phòng theo tên (sử dụng LIKE)
+     */
+    public List<Room> searchRoomByName(String keyword) {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT * FROM rooms WHERE name LIKE ? ORDER BY name";
+        
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, "%" + keyword + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    rooms.add(mapResultSetToRoom(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println(" Lỗi tìm kiếm phòng: " + e.getMessage());
+        }
+        return rooms;
+    }
 }
-
-

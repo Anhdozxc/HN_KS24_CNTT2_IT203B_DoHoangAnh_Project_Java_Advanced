@@ -41,6 +41,32 @@ public class ServiceService {
         return serviceDao.addService(newService);
     }
 
+    /**
+     * Thêm dịch vụ mới với trạng thái
+     */
+    public boolean addService(String name, String description, double price, String status) {
+        // Kiểm tra hợp lệ
+        if (!ValidationUtil.isNotEmpty(name)) {
+            System.out.println("Lỗi: Tên dịch vụ không được để trống");
+            return false;
+        }
+        
+        if (!ValidationUtil.isPositiveDouble(price)) {
+            System.out.println("Lỗi: Giá dịch vụ phải lớn hơn 0");
+            return false;
+        }
+        
+        // Kiểm tra tên dịch vụ đã tồn tại
+        if (serviceDao.serviceNameExists(name)) {
+            System.out.println("Lỗi: Tên dịch vụ đã tồn tại!");
+            return false;
+        }
+        
+        Service newService = new Service(name, price, description);
+        newService.setStatus(status);
+        return serviceDao.addService(newService);
+    }
+
     // CẬP NHẬT DỊCH VỤ
     /**
      * Cập nhật thông tin dịch vụ
@@ -117,5 +143,3 @@ public class ServiceService {
         return serviceDao.getTotalServices();
     }
 }
-
-

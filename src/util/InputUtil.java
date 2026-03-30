@@ -3,6 +3,7 @@ package util;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
+import java.io.Console;
 
 /**
  * Lớp tiện ích để nhận input từ người dùng
@@ -51,6 +52,18 @@ public class InputUtil {
             }
         }
     }
+
+    // Nhập số thập phân dương
+    public static double inputPositiveDouble(String prompt) {
+        while (true) {
+            double num = inputDouble(prompt);
+            if (num > 0) {
+                return num;
+            }
+            System.out.println("Lỗi: Vui lòng nhập một số dương!");
+        }
+    }
+
 
     //  NHẬP CHUỖI
     public static String inputString(String prompt) {
@@ -138,6 +151,35 @@ public class InputUtil {
         }
     }
 
+    // Nhập mật khẩu với hiển thị dấu sao (*)
+    public static String inputPasswordMasked(String prompt) {
+        while (true) {
+            try {
+                System.out.print(prompt);
+                String password = "";
+
+                // Thử sử dụng Console.readPassword() nếu có sẵn
+                Console console = System.console();
+                if (console != null) {
+                    // Nếu chương trình chạy từ terminal, sử dụng readPassword
+                    char[] passwordChars = console.readPassword();
+                    password = new String(passwordChars);
+                } else {
+                    // Nếu chạy từ IDE, fallback về Scanner thường
+                    password = scanner.nextLine().trim();
+                }
+
+                if (password.length() >= 6) {
+                    return password;
+                }
+                System.out.println("Lỗi: Mật khẩu phải có ít nhất 6 ký tự!");
+            } catch (Exception e) {
+                System.out.println("Lỗi: Không thể đọc mật khẩu!");
+            }
+        }
+    }
+
+
     //  NHẬP TÊN NGƯỜI DÙNG
     public static String inputFullName(String prompt) {
         while (true) {
@@ -149,5 +191,3 @@ public class InputUtil {
         }
     }
 }
-
-

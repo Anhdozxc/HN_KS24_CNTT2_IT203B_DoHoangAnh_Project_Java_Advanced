@@ -12,12 +12,14 @@ public class AdminMenu {
     private UserService userService;
     private RoomService roomService;
     private EquipmentService equipmentService;
+    private ServiceService serviceService;
 
     public AdminMenu(User user) {
         this.currentUser = user;
         this.userService = new UserService();
         this.roomService = new RoomService();
         this.equipmentService = new EquipmentService();
+        this.serviceService = new ServiceService();
     }
 
     public void showMenu() {
@@ -29,10 +31,11 @@ public class AdminMenu {
 
             System.out.println("\n1. Quản lý phòng họp");
             System.out.println("2. Quản lý thiết bị");
-            System.out.println("3. Quản lý nhân viên hỗ trợ");
-            System.out.println("4. Đăng xuất");
+            System.out.println("3. Quản lý dịch vụ");
+            System.out.println("4. Quản lý nhân viên hỗ trợ");
+            System.out.println("5. Đăng xuất");
 
-            int choice = InputUtil.inputChoice("\nNhập lựa chọn: ", 1, 4);
+            int choice = InputUtil.inputChoice("\nNhập lựa chọn: ", 1, 5);
 
             switch (choice) {
                 case 1:
@@ -42,9 +45,12 @@ public class AdminMenu {
                     equipmentMenu();
                     break;
                 case 3:
-                    userMenu();
+                    serviceMenu();
                     break;
                 case 4:
+                    userMenu();
+                    break;
+                case 5:
                     System.out.println(" Đã đăng xuất. Tạm biệt!");
                     return;
             }
@@ -60,10 +66,11 @@ public class AdminMenu {
             System.out.println("3. Cập nhật thông tin phòng");
             System.out.println("4. Cập nhật sức chứa phòng");
             System.out.println("5. Cập nhật trạng thái phòng");
-            System.out.println("6. Xóa phòng");
+            System.out.println("6. Tìm kiếm phòng theo tên");
+            System.out.println("7. Xóa phòng");
             System.out.println("0. Quay lại");
 
-            int choice = InputUtil.inputChoice("\nChọn: ", 0, 6);
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 7);
 
             switch (choice) {
                 case 1:
@@ -82,6 +89,9 @@ public class AdminMenu {
                     updateRoomStatus();
                     break;
                 case 6:
+                    searchRoom();
+                    break;
+                case 7:
                     deleteRoom();
                     break;
                 case 0:
@@ -220,6 +230,28 @@ public class AdminMenu {
         InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
+    private void searchRoom() {
+        System.out.println("\n===== TÌM KIẾM PHÒNG =====");
+        String keyword = InputUtil.inputNonEmptyString("Nhập tên phòng để tìm kiếm: ");
+        
+        List<Room> results = roomService.searchRoomByName(keyword);
+        
+        if (results.isEmpty()) {
+            System.out.println("Không tìm thấy phòng nào với tên chứa '" + keyword + "'");
+        } else {
+            System.out.println("\n========== KẾT QUẢ TÌM KIẾM ==========");
+            for (Room r : results) {
+                System.out.println("\nID: " + r.getId());
+                System.out.println("   Tên: " + r.getName());
+                System.out.println("   Sức chứa: " + r.getCapacity() + " người");
+                System.out.println("   Vị trí: " + r.getLocation());
+                System.out.println("   Thiết bị cố định: " + r.getFixedEquipment());
+                System.out.println("   Trạng thái: " + r.getStatus());
+            }
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
     //  EQUIPMENT MENU
     private void equipmentMenu() {
         while (true) {
@@ -228,9 +260,10 @@ public class AdminMenu {
             System.out.println("2. Thêm thiết bị mới");
             System.out.println("3. Cập nhật số lượng khả dụng");
             System.out.println("4. Cập nhật trạng thái thiết bị");
+            System.out.println("5. Xóa thiết bị");
             System.out.println("0. Quay lại");
 
-            int choice = InputUtil.inputChoice("\nChọn: ", 0, 4);
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 5);
 
             switch (choice) {
                 case 1:
@@ -244,6 +277,9 @@ public class AdminMenu {
                     break;
                 case 4:
                     updateEquipmentStatus();
+                    break;
+                case 5:
+                    deleteEquipment();
                     break;
                 case 0:
                     return;
@@ -331,6 +367,141 @@ public class AdminMenu {
             System.out.println("Thành công: Cập nhật trạng thái!");
         } else {
             System.out.println("Lỗi: Cập nhật trạng thái thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    private void deleteEquipment() {
+        System.out.println("\n===== XÓA THIẾT BỊ =====");
+        int id = InputUtil.inputPositiveInt("ID thiết bị cần xóa: ");
+        
+        Equipment equipment = equipmentService.getEquipmentById(id);
+        if (equipment == null) {
+            System.out.println("Lỗi: Thiết bị không tồn tại!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+        
+        String confirm = InputUtil.inputNonEmptyString("Bạn chắc chắn muốn xóa thiết bị '" + equipment.getName() + "'? (yes/no): ");
+        if (confirm.equalsIgnoreCase("yes")) {
+            if (equipmentService.deleteEquipment(id)) {
+                System.out.println("Thành công: Xóa thiết bị!");
+            } else {
+                System.out.println("Lỗi: Xóa thiết bị thất bại!");
+            }
+        } else {
+            System.out.println("Đã hủy bỏ thao tác");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    //  SERVICE MENU
+    private void serviceMenu() {
+        while (true) {
+            System.out.println("\n===== QUẢN LÝ DỊCH VỤ =====");
+            System.out.println("1. Xem danh sách dịch vụ");
+            System.out.println("2. Thêm dịch vụ mới");
+            System.out.println("3. Cập nhật dịch vụ");
+            System.out.println("4. Xóa dịch vụ");
+            System.out.println("0. Quay lại");
+
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 4);
+
+            switch (choice) {
+                case 1:
+                    viewServices();
+                    break;
+                case 2:
+                    addService();
+                    break;
+                case 3:
+                    updateService();
+                    break;
+                case 4:
+                    deleteService();
+                    break;
+                case 0:
+                    return;
+            }
+        }
+    }
+
+    private void viewServices() {
+        List<Service> list = serviceService.getAllServices();
+        
+        if (list.isEmpty()) {
+            System.out.println("\nChưa có dịch vụ nào trong hệ thống");
+            return;
+        }
+
+        System.out.println("\n========== DANH SÁCH DỊCH VỤ ==========");
+        for (Service s : list) {
+            System.out.println("\nID: " + s.getId());
+            System.out.println("   Tên dịch vụ: " + s.getName());
+            System.out.println("   Mô tả: " + s.getDescription());
+            System.out.println("   Giá: " + s.getPrice());
+            System.out.println("   Trạng thái: " + s.getStatus());
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    private void addService() {
+        System.out.println("\n===== THÊM DỊCH VỤ MỚI =====");
+        String name = InputUtil.inputNonEmptyString("Tên dịch vụ: ");
+        String description = InputUtil.inputNonEmptyString("Mô tả: ");
+        double price = InputUtil.inputPositiveDouble("Giá: ");
+
+        if (serviceService.addService(name, description, price, "ACTIVE")) {
+            System.out.println("Thành công: Thêm dịch vụ mới!");
+        } else {
+            System.out.println("Lỗi: Thêm dịch vụ thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    private void updateService() {
+        System.out.println("\n===== CẬP NHẬT DỊCH VỤ =====");
+        int id = InputUtil.inputPositiveInt("ID dịch vụ cần cập nhật: ");
+        
+        Service service = serviceService.getServiceById(id);
+        if (service == null) {
+            System.out.println("Lỗi: Dịch vụ không tồn tại!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+        
+        String name = InputUtil.inputNonEmptyString("Tên mới (hiện tại: " + service.getName() + "): ");
+        String description = InputUtil.inputNonEmptyString("Mô tả mới (hiện tại: " + service.getDescription() + "): ");
+        double price = InputUtil.inputPositiveDouble("Giá mới (hiện tại: " + service.getPrice() + "): ");
+
+        if (serviceService.updateService(id, name, price, description, service.getStatus())) {
+            System.out.println("Thành công: Cập nhật dịch vụ!");
+        } else {
+            System.out.println("Lỗi: Cập nhật dịch vụ thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    private void deleteService() {
+        System.out.println("\n===== XÓA DỊCH VỤ =====");
+        int id = InputUtil.inputPositiveInt("ID dịch vụ cần xóa: ");
+        
+        Service service = serviceService.getServiceById(id);
+        if (service == null) {
+            System.out.println("Lỗi: Dịch vụ không tồn tại!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+        
+        String confirm = InputUtil.inputNonEmptyString("Bạn chắc chắn muốn xóa dịch vụ '" + service.getName() + "'? (yes/no): ");
+        if (confirm.equalsIgnoreCase("yes")) {
+            if (serviceService.deleteService(id)) {
+                System.out.println("Thành công: Xóa dịch vụ!");
+            } else {
+                System.out.println("Lỗi: Xóa dịch vụ thất bại!");
+            }
+        } else {
+            System.out.println("Đã hủy bỏ thao tác");
         }
         InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
