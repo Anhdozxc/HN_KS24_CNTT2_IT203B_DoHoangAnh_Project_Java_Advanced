@@ -13,6 +13,8 @@ public class AdminMenu {
     private RoomService roomService;
     private EquipmentService equipmentService;
     private ServiceService serviceService;
+    private BookingService bookingService;
+    private DateTimeFormatter dateFormatter;
 
     public AdminMenu(User user) {
         this.currentUser = user;
@@ -20,6 +22,8 @@ public class AdminMenu {
         this.roomService = new RoomService();
         this.equipmentService = new EquipmentService();
         this.serviceService = new ServiceService();
+        this.bookingService = new BookingService();
+        this.dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     }
 
     public void showMenu() {
@@ -33,9 +37,10 @@ public class AdminMenu {
             System.out.println("2. Quản lý thiết bị");
             System.out.println("3. Quản lý dịch vụ");
             System.out.println("4. Quản lý nhân viên hỗ trợ");
-            System.out.println("5. Đăng xuất");
+            System.out.println("5. Duyệt lịch đặt phòng ");
+            System.out.println("6. Đăng xuất");
 
-            int choice = InputUtil.inputChoice("\nNhập lựa chọn: ", 1, 5);
+            int choice = InputUtil.inputChoice("\nNhập lựa chọn: ", 1, 6);
 
             switch (choice) {
                 case 1:
@@ -51,6 +56,9 @@ public class AdminMenu {
                     userMenu();
                     break;
                 case 5:
+                    approveBookingMenu();
+                    break;
+                case 6:
                     System.out.println(" Đã đăng xuất. Tạm biệt!");
                     return;
             }
@@ -570,6 +578,170 @@ public class AdminMenu {
             System.out.println("Thành công: Tạo tài khoản nhân viên hỗ trợ!");
         } else {
             System.out.println("Lỗi: Tạo tài khoản thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    // Day 4: DUYỆT LỊCH ĐẶT PHÒNG
+    /**
+     * Menu duyệt/từ chối lịch đặt phòng và phân công support staff
+     */
+    private void approveBookingMenu() {
+        while (true) {
+            System.out.println("\n========================================");
+            System.out.println("  DUYỆT LỊCH ĐẶT PHÒNG");
+            System.out.println("========================================");
+
+            // Hiển thị số lượng booking chờ duyệt
+            List<Booking> pendingBookings = bookingService.getPendingBookings();
+            System.out.println("Số phiếu chờ duyệt: " + pendingBookings.size());
+
+            System.out.println("\n1. Xem danh sách phiếu chờ duyệt");
+            System.out.println("2. Duyệt phiếu đặt");
+            System.out.println("3. Từ chối phiếu đặt");
+            System.out.println("0. Quay lại");
+
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 3);
+
+            switch (choice) {
+                case 1:
+                    viewPendingBookings();
+                    break;
+                case 2:
+                    approveBooking();
+                    break;
+                case 3:
+                    rejectBooking();
+                    break;
+                case 0:
+                    return;
+            }
+        }
+    }
+
+    /**
+     * Hiển thị danh sách phiếu chờ duyệt
+     */
+    private void viewPendingBookings() {
+        List<Booking> bookings = bookingService.getPendingBookings();
+
+        if (bookings.isEmpty()) {
+            System.out.println("\nKhông có phiếu đặt nào chờ duyệt!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("\n========== DANH SÁCH PHIẾU CHỜ DUYỆT ==========");
+        for (Booking booking : bookings) {
+            Room room = roomService.getRoomById(booking.getRoomId());
+            User employee = userService.getUserById(booking.getUserId());
+
+            System.out.println("\nID: " + booking.getId());
+            System.out.println("   Nhân viên: " + (employee != null ? employee.getFullname() : "N/A"));
+            System.out.println("   Phòng: " + (room != null ? room.getName() : "N/A"));
+            System.out.println("   Từ: " + booking.getStartTime().format(dateFormatter));
+            System.out.println("   Đến: " + booking.getEndTime().format(dateFormatter));
+            System.out.println("   Số người: " + booking.getParticipantCount());
+            if (booking.getNotes() != null && !booking.getNotes().isEmpty()) {
+                System.out.println("   Ghi chú: " + booking.getNotes());
+            }
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    /**
+     * Duyệt phiếu đặt và phân công nhân viên hỗ trợ
+     */
+    private void approveBooking() {
+        System.out.println("\n===== DUYỆT PHIẾU ĐẶT =====");
+
+        List<Booking> pendingBookings = bookingService.getPendingBookings();
+        if (pendingBookings.isEmpty()) {
+            System.out.println("Không có phiếu đặt nào chờ duyệt!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("Danh sách phiếu chờ duyệt:");
+        for (Booking b : pendingBookings) {
+            Room room = roomService.getRoomById(b.getRoomId());
+            System.out.println("   ID: " + b.getId() + " | " + (room != null ? room.getName() : "N/A") +
+                             " | Từ: " + b.getStartTime().format(dateFormatter));
+        }
+
+        int bookingId = InputUtil.inputPositiveInt("\nNhập ID phiếu cần duyệt: ");
+
+        Booking booking = bookingService.getBookingById(bookingId);
+        if (booking == null || !"PENDING".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Phiếu đặt không tồn tại hoặc đã được xử lý!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        // Lấy danh sách nhân viên hỗ trợ
+        List<User> supportStaffList = userService.getAllSupportStaff();
+        if (supportStaffList.isEmpty()) {
+            System.out.println("Lỗi: Không có nhân viên hỗ trợ để phân công!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("\nDanh sách nhân viên hỗ trợ:");
+        for (User staff : supportStaffList) {
+            System.out.println("   ID: " + staff.getId() + " - " + staff.getFullname());
+        }
+
+        int supportStaffId = InputUtil.inputPositiveInt("\nChọn ID nhân viên hỗ trợ để phân công: ");
+
+        User selectedStaff = userService.getUserById(supportStaffId);
+        if (selectedStaff == null || !"SUPPORT_STAFF".equals(selectedStaff.getRole())) {
+            System.out.println("Lỗi: Nhân viên hỗ trợ không tồn tại!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        // Duyệt phiếu và phân công
+        if (bookingService.approveBooking(bookingId, supportStaffId)) {
+            System.out.println("Thành công: Đã duyệt phiếu đặt và phân công cho " + selectedStaff.getFullname());
+        } else {
+            System.out.println("Lỗi: Duyệt phiếu thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    /**
+     * Từ chối phiếu đặt
+     */
+    private void rejectBooking() {
+        System.out.println("\n===== TỪ CHỐI PHIẾU ĐẶT =====");
+
+        List<Booking> pendingBookings = bookingService.getPendingBookings();
+        if (pendingBookings.isEmpty()) {
+            System.out.println("Không có phiếu đặt nào chờ duyệt!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("Danh sách phiếu chờ duyệt:");
+        for (Booking b : pendingBookings) {
+            Room room = roomService.getRoomById(b.getRoomId());
+            System.out.println("   ID: " + b.getId() + " | " + (room != null ? room.getName() : "N/A") +
+                             " | Từ: " + b.getStartTime().format(dateFormatter));
+        }
+
+        int bookingId = InputUtil.inputPositiveInt("\nNhập ID phiếu cần từ chối: ");
+
+        Booking booking = bookingService.getBookingById(bookingId);
+        if (booking == null || !"PENDING".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Phiếu đặt không tồn tại hoặc đã được xử lý!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        if (bookingService.rejectBooking(bookingId)) {
+            System.out.println("Thành công: Đã từ chối phiếu đặt!");
+        } else {
+            System.out.println("Lỗi: Từ chối phiếu thất bại!");
         }
         InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }

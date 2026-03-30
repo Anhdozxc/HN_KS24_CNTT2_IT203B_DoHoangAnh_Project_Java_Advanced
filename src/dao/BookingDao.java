@@ -161,6 +161,47 @@ public class BookingDao {
     }
 
     /**
+     * Lấy danh sách phòng trống trong khoảng thời gian (Day 3)
+     * Trả về danh sách ID phòng không bị trùng lịch
+     */
+    public List<Integer> getAvailableRooms(LocalDateTime startTime, LocalDateTime endTime) {
+        List<Integer> availableRoomIds = new ArrayList<>();
+        String sql = "SELECT DISTINCT r.id FROM rooms r " +
+                     "WHERE r.status = 'AVAILABLE' " +
+                     "AND r.id NOT IN (" +
+                     "  SELECT DISTINCT room_id FROM bookings " +
+                     "  WHERE status IN ('PENDING', 'APPROVED') " +
+                     "  AND ((start_time < ? AND end_time > ?) OR " +
+                     "       (start_time < ? AND end_time > ?) OR " +
+                     "       (start_time >= ? AND end_time <= ?))" +
+                     ") " +
+                     "ORDER BY r.name";
+        
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            Timestamp startTs = Timestamp.valueOf(startTime);
+            Timestamp endTs = Timestamp.valueOf(endTime);
+            
+            stmt.setTimestamp(1, endTs);
+            stmt.setTimestamp(2, startTs);
+            stmt.setTimestamp(3, endTs);
+            stmt.setTimestamp(4, startTs);
+            stmt.setTimestamp(5, startTs);
+            stmt.setTimestamp(6, endTs);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    availableRoomIds.add(rs.getInt("id"));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println(" Lỗi lấy danh sách phòng trống: " + e.getMessage());
+        }
+        return availableRoomIds;
+    }
+
+    /**
      * Kiểm tra xung đột lịch trình trong một phòng
      */
     public boolean isRoomBooked(int roomId, LocalDateTime startTime, LocalDateTime endTime) {

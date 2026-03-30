@@ -6,8 +6,10 @@ import dao.BookingServiceDao;
 import model.Booking;
 import model.BookingEquipmentDetail;
 import model.BookingServiceDetail;
+import model.Room;
 import util.ValidationUtil;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,6 +28,28 @@ public class BookingService {
         this.bookingServiceDao = new BookingServiceDao();
         this.roomService = new RoomService();
         this.equipmentService = new EquipmentService();
+    }
+
+    //  DAY 3: DISPLAY AVAILABLE ROOMS BY TIME
+    /**
+     * Lấy danh sách phòng trống theo thời gian (Day 3)
+     * Loại bỏ phòng bị trùng lịch
+     */
+    public List<Room> getAvailableRoomsByTime(LocalDateTime startTime, LocalDateTime endTime) {
+        List<Room> availableRooms = new ArrayList<>();
+        
+        // Lấy danh sách ID phòng trống từ DAO
+        List<Integer> availableRoomIds = bookingDao.getAvailableRooms(startTime, endTime);
+        
+        // Lấy thông tin phòng từ ID
+        for (int roomId : availableRoomIds) {
+            Room room = roomService.getRoomById(roomId);
+            if (room != null) {
+                availableRooms.add(room);
+            }
+        }
+        
+        return availableRooms;
     }
 
     //  THÊM ĐẶT PHÒNG

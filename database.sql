@@ -1,6 +1,3 @@
--- ================================================================
--- HỆ THỐNG QUẢN LÝ ĐẶT PHÒNG HỌP & DỊCH VỤ VĂN PHÒNG
--- Database: meeting_db
 -- Xóa database cũ nếu tồn tại
 DROP DATABASE IF EXISTS meeting_db;
 

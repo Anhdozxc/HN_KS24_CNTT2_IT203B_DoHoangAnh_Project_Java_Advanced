@@ -106,7 +106,7 @@ public class SupportStaffMenu {
         }
         
         System.out.println("\n========================================");
-        System.out.println("  CẬP NHẬT TRẠNG THÁI CHUẨN BỊ");
+        System.out.println("  CẬP NHẬT TRẠNG THÁI CHUẨN BỊ ");
         System.out.println("========================================");
         System.out.println("\nDanh sách phiếu đặt:");
         
@@ -132,26 +132,32 @@ public class SupportStaffMenu {
         System.out.println("3. Missing Equipment (Thiếu thiết bị)");
         int choice = InputUtil.inputChoice("Chọn trạng thái: ", 1, 3);
         
-        String newStatus;
+        String preparationStatus;
         switch (choice) {
             case 1:
-                newStatus = "Preparing";
+                preparationStatus = "Preparing";
                 break;
             case 2:
-                newStatus = "Ready";
+                preparationStatus = "Ready";
                 break;
             case 3:
-                newStatus = "Missing Equipment";
+                preparationStatus = "Missing Equipment";
                 break;
             default:
-                newStatus = "Preparing";
+                preparationStatus = "Preparing";
         }
         
-        String notes = InputUtil.inputNonEmptyString("Ghi chú (có thể để trống): ");
+        String additionalNotes = InputUtil.inputNonEmptyString("Ghi chú thêm (có thể để trống): ");
         
-        if (bookingService.updateNotes(bookingId, notes)) {
+        // Lưu trạng thái chuẩn bị vào notes (Day 4)
+        String fullNotes = preparationStatus;
+        if (additionalNotes != null && !additionalNotes.isEmpty()) {
+            fullNotes = preparationStatus + " | " + additionalNotes;
+        }
+        
+        if (bookingService.updateNotes(bookingId, fullNotes)) {
             System.out.println("Thành công: Cập nhật trạng thái chuẩn bị thành công!");
-            System.out.println("   Trạng thái: " + newStatus);
+            System.out.println("   Trạng thái: " + preparationStatus);
         } else {
             System.out.println("Lỗi: Cập nhật trạng thái thất bại!");
         }
