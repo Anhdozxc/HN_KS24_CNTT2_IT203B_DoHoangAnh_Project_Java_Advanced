@@ -86,10 +86,14 @@ public class SupportStaffMenu {
             System.out.println("   Từ: " + booking.getStartTime().format(dateFormatter));
             System.out.println("   Đến: " + booking.getEndTime().format(dateFormatter));
             System.out.println("   Số người: " + booking.getParticipantCount());
-            System.out.println("   Trạng thái: " + booking.getStatus());
-            
+            System.out.println("   Trạng thái booking: " + booking.getStatus());
+            System.out.println("   Trạng thái chuẩn bị: " + booking.getPreparationStatus());
+
+            if (booking.getPreparationNote() != null && !booking.getPreparationNote().isEmpty()) {
+                System.out.println("   Ghi chú chuẩn bị: " + booking.getPreparationNote());
+            }
             if (booking.getNotes() != null && !booking.getNotes().isEmpty()) {
-                System.out.println("   Ghi chú: " + booking.getNotes());
+                System.out.println("   Ghi chú đặt phòng: " + booking.getNotes());
             }
         }
         
@@ -120,7 +124,7 @@ public class SupportStaffMenu {
         int bookingId = InputUtil.inputPositiveInt("\nChọn ID phiếu đặt cần cập nhật: ");
         
         Booking booking = bookingService.getBookingById(bookingId);
-        if (booking == null || booking.getSupportStaffId() != currentUser.getId()) {
+        if (booking == null || booking.getSupportStaffId() == null || booking.getSupportStaffId() != currentUser.getId()) {
             System.out.println("Lỗi: Phiếu đặt không tồn tại hoặc không được phân công cho bạn!");
             InputUtil.inputString("\nNhấn Enter để tiếp tục...");
             return;
@@ -147,15 +151,9 @@ public class SupportStaffMenu {
                 preparationStatus = "Preparing";
         }
         
-        String additionalNotes = InputUtil.inputNonEmptyString("Ghi chú thêm (có thể để trống): ");
-        
-        // Lưu trạng thái chuẩn bị vào notes (Day 4)
-        String fullNotes = preparationStatus;
-        if (additionalNotes != null && !additionalNotes.isEmpty()) {
-            fullNotes = preparationStatus + " | " + additionalNotes;
-        }
-        
-        if (bookingService.updateNotes(bookingId, fullNotes)) {
+        String additionalNotes = InputUtil.inputOptionalString("Ghi chú thêm (có thể để trống): ");
+
+        if (bookingService.updatePreparationInfo(bookingId, preparationStatus, additionalNotes)) {
             System.out.println("Thành công: Cập nhật trạng thái chuẩn bị thành công!");
             System.out.println("   Trạng thái: " + preparationStatus);
         } else {

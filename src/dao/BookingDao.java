@@ -17,8 +17,8 @@ public class BookingDao {
      * Thêm phiếu đặt phòng mới vào database
      */
     public int addBooking(Booking booking) {
-        String sql = "INSERT INTO bookings (user_id, room_id, start_time, end_time, status, participant_count, notes) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO bookings (user_id, room_id, start_time, end_time, status, participant_count, notes, preparation_status, preparation_note) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -30,6 +30,8 @@ public class BookingDao {
             stmt.setString(5, booking.getStatus() != null ? booking.getStatus() : "PENDING");
             stmt.setObject(6, booking.getParticipantCount());
             stmt.setString(7, booking.getNotes());
+            stmt.setString(8, booking.getPreparationStatus() != null ? booking.getPreparationStatus() : "Preparing");
+            stmt.setString(9, booking.getPreparationNote());
             
             int rowsInserted = stmt.executeUpdate();
             if (rowsInserted > 0) {
@@ -143,7 +145,7 @@ public class BookingDao {
      */
     public List<Booking> getBookingsBySupportStaff(int supportStaffId) {
         List<Booking> bookings = new ArrayList<>();
-        String sql = "SELECT * FROM bookings WHERE support_staff_id = ? AND status = 'APPROVED' ORDER BY start_time";
+        String sql = "SELECT * FROM bookings WHERE support_staff_id = ? AND status = 'ASSIGNED' ORDER BY start_time";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -166,16 +168,15 @@ public class BookingDao {
      */
     public List<Integer> getAvailableRooms(LocalDateTime startTime, LocalDateTime endTime) {
         List<Integer> availableRoomIds = new ArrayList<>();
-        String sql = "SELECT DISTINCT r.id FROM rooms r " +
+        // Lấy tất cả phòng AVAILABLE không bị trùng lịch
+        String sql = "SELECT r.id FROM rooms r " +
                      "WHERE r.status = 'AVAILABLE' " +
                      "AND r.id NOT IN (" +
                      "  SELECT DISTINCT room_id FROM bookings " +
-                     "  WHERE status IN ('PENDING', 'APPROVED') " +
-                     "  AND ((start_time < ? AND end_time > ?) OR " +
-                     "       (start_time < ? AND end_time > ?) OR " +
-                     "       (start_time >= ? AND end_time <= ?))" +
+                     "  WHERE status IN ('PENDING', 'APPROVED', 'ASSIGNED') " +
+                     "  AND (start_time < ? AND end_time > ?)" +
                      ") " +
-                     "ORDER BY r.name";
+                     "ORDER BY r.id";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -185,10 +186,6 @@ public class BookingDao {
             
             stmt.setTimestamp(1, endTs);
             stmt.setTimestamp(2, startTs);
-            stmt.setTimestamp(3, endTs);
-            stmt.setTimestamp(4, startTs);
-            stmt.setTimestamp(5, startTs);
-            stmt.setTimestamp(6, endTs);
             
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -196,7 +193,7 @@ public class BookingDao {
                 }
             }
         } catch (SQLException e) {
-            System.out.println(" Lỗi lấy danh sách phòng trống: " + e.getMessage());
+            System.out.println("Lỗi lấy danh sách phòng trống: " + e.getMessage());
         }
         return availableRoomIds;
     }
@@ -206,10 +203,8 @@ public class BookingDao {
      */
     public boolean isRoomBooked(int roomId, LocalDateTime startTime, LocalDateTime endTime) {
         String sql = "SELECT COUNT(*) as count FROM bookings " +
-                     "WHERE room_id = ? AND status IN ('PENDING', 'APPROVED') " +
-                     "AND ((start_time < ? AND end_time > ?) OR " +
-                     "(start_time < ? AND end_time > ?) OR " +
-                     "(start_time >= ? AND end_time <= ?))";
+                     "WHERE room_id = ? AND status IN ('PENDING', 'APPROVED', 'ASSIGNED') " +
+                     "AND (start_time < ? AND end_time > ?)";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -220,10 +215,6 @@ public class BookingDao {
             stmt.setInt(1, roomId);
             stmt.setTimestamp(2, endTs);
             stmt.setTimestamp(3, startTs);
-            stmt.setTimestamp(4, endTs);
-            stmt.setTimestamp(5, startTs);
-            stmt.setTimestamp(6, startTs);
-            stmt.setTimestamp(7, endTs);
             
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -261,7 +252,7 @@ public class BookingDao {
      * Phân công nhân viên hỗ trợ
      */
     public boolean assignSupportStaff(int bookingId, int supportStaffId) {
-        String sql = "UPDATE bookings SET support_staff_id = ? WHERE id = ?";
+        String sql = "UPDATE bookings SET support_staff_id = ?, status = 'ASSIGNED' WHERE id = ? AND status = 'APPROVED'";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -293,6 +284,27 @@ public class BookingDao {
             return rowsUpdated > 0;
         } catch (SQLException e) {
             System.out.println(" Lỗi cập nhật ghi chú: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cập nhật trạng thái chuẩn bị và ghi chú chuẩn bị
+     */
+    public boolean updatePreparationInfo(int bookingId, String preparationStatus, String preparationNote) {
+        String sql = "UPDATE bookings SET preparation_status = ?, preparation_note = ? WHERE id = ?";
+
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, preparationStatus);
+            stmt.setString(2, preparationNote);
+            stmt.setInt(3, bookingId);
+
+            int rowsUpdated = stmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.out.println(" Lỗi cập nhật trạng thái chuẩn bị: " + e.getMessage());
             return false;
         }
     }
@@ -380,12 +392,14 @@ public class BookingDao {
         Integer participantCount = participantObj != null ? (Integer) participantObj : null;
         
         String notes = rs.getString("notes");
+        String preparationStatus = rs.getString("preparation_status");
+        String preparationNote = rs.getString("preparation_note");
         
         Timestamp createdTs = rs.getTimestamp("created_date");
         LocalDateTime createdDate = createdTs != null ? createdTs.toLocalDateTime() : null;
         
         return new Booking(id, userId, roomId, startTime, endTime, status, supportStaffId,
-                          participantCount, notes, createdDate);
+                          participantCount, notes, preparationStatus, preparationNote, createdDate);
     }
 }
 

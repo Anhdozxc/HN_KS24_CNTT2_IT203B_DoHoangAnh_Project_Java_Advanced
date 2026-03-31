@@ -129,7 +129,18 @@ public class AdminMenu {
 
     private void addRoom() {
         System.out.println("\n===== THÊM PHÒNG MỚI =====");
-        String name = InputUtil.inputNonEmptyString("Tên phòng: ");
+        
+        // Kiểm tra tên phòng trùng trước
+        String name = "";
+        while (true) {
+            name = InputUtil.inputNonEmptyString("Tên phòng: ");
+            if (roomService.getRoomByName(name) != null) {
+                System.out.println("Lỗi: Tên phòng đã tồn tại! Vui lòng chọn tên khác.");
+            } else {
+                break;
+            }
+        }
+        
         int capacity = InputUtil.inputPositiveInt("Sức chứa (số người): ");
         String location = InputUtil.inputNonEmptyString("Vị trí: ");
         String equipment = InputUtil.inputNonEmptyString("Thiết bị cố định (ngăn cách bằng dấu phẩy): ");
@@ -316,7 +327,18 @@ public class AdminMenu {
 
     private void addEquipment() {
         System.out.println("\n===== THÊM THIẾT BỊ MỚI =====");
-        String name = InputUtil.inputNonEmptyString("Tên thiết bị: ");
+        
+        // Kiểm tra tên thiết bị trùng trước
+        String name = "";
+        while (true) {
+            name = InputUtil.inputNonEmptyString("Tên thiết bị: ");
+            if (equipmentService.getEquipmentByName(name) != null) {
+                System.out.println("Lỗi: Tên thiết bị đã tồn tại! Vui lòng chọn tên khác.");
+            } else {
+                break;
+            }
+        }
+        
         int quantity = InputUtil.inputPositiveInt("Số lượng ban đầu: ");
 
         if (equipmentService.addEquipment(name, quantity, "ACTIVE")) {
@@ -455,7 +477,18 @@ public class AdminMenu {
 
     private void addService() {
         System.out.println("\n===== THÊM DỊCH VỤ MỚI =====");
-        String name = InputUtil.inputNonEmptyString("Tên dịch vụ: ");
+        
+        // Kiểm tra tên dịch vụ trùng trước
+        String name = "";
+        while (true) {
+            name = InputUtil.inputNonEmptyString("Tên dịch vụ: ");
+            if (serviceService.getServiceByName(name) != null) {
+                System.out.println("Lỗi: Tên dịch vụ đã tồn tại! Vui lòng chọn tên khác.");
+            } else {
+                break;
+            }
+        }
+        
         String description = InputUtil.inputNonEmptyString("Mô tả: ");
         double price = InputUtil.inputPositiveDouble("Giá: ");
 
@@ -517,24 +550,55 @@ public class AdminMenu {
     //  USER MENU
     private void userMenu() {
         while (true) {
-            System.out.println("\n===== QUẢN LÝ NHÂN VIÊN HỖ TRỢ =====");
-            System.out.println("1. Xem danh sách nhân viên hỗ trợ");
-            System.out.println("2. Tạo tài khoản nhân viên hỗ trợ mới");
+            System.out.println("\n===== QUẢN LÝ NGƯỜI DÙNG =====");
+            System.out.println("1. Xem danh sách tất cả người dùng");
+            System.out.println("2. Xem danh sách nhân viên hỗ trợ");
+            System.out.println("3. Tạo tài khoản nhân viên hỗ trợ");
+            System.out.println("4. Tạo tài khoản admin");
             System.out.println("0. Quay lại");
 
-            int choice = InputUtil.inputChoice("\nChọn: ", 0, 2);
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 4);
 
             switch (choice) {
                 case 1:
-                    viewSupportStaff();
+                    viewAllUsers();
                     break;
                 case 2:
+                    viewSupportStaff();
+                    break;
+                case 3:
                     createSupportStaffAccount();
+                    break;
+                case 4:
+                    createAdminAccount();
                     break;
                 case 0:
                     return;
             }
         }
+    }
+
+    // Xem danh sách tất cả người dùng
+    private void viewAllUsers() {
+        List<User> allUsers = userService.getAllUsers();
+        
+        if (allUsers.isEmpty()) {
+            System.out.println("\nChưa có người dùng nào trong hệ thống");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("\n========== DANH SÁCH TẤT CẢ NGƯỜI DÙNG ==========");
+        for (User user : allUsers) {
+            System.out.println("\nID: " + user.getId());
+            System.out.println("   Tài khoản: " + user.getUsername());
+            System.out.println("   Họ tên: " + user.getFullname());
+            System.out.println("   Vai trò: " + user.getRole());
+            System.out.println("   Điện thoại: " + user.getPhone());
+            System.out.println("   Phòng ban: " + user.getDepartment());
+            System.out.println("   Trạng thái: " + user.getStatus());
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }
 
     private void viewSupportStaff() {
@@ -560,7 +624,18 @@ public class AdminMenu {
 
     private void createSupportStaffAccount() {
         System.out.println("\n===== TẠO TÀI KHOẢN NHÂN VIÊN HỖ TRỢ =====");
-        String username = InputUtil.inputUsername("Tên đăng nhập (3-20 ký tự): ");
+        
+        // Kiểm tra username trùng trước
+        String username = "";
+        while (true) {
+            username = InputUtil.inputUsername("Tên đăng nhập (3-20 ký tự): ");
+            if (userService.usernameExists(username)) {
+                System.out.println("Lỗi: Username đã tồn tại! Vui lòng chọn username khác.");
+            } else {
+                break;
+            }
+        }
+        
         String password = InputUtil.inputPassword("Mật khẩu (tối thiểu 6 ký tự): ");
         String passwordConfirm = InputUtil.inputPassword("Xác nhận mật khẩu: ");
         
@@ -576,6 +651,42 @@ public class AdminMenu {
 
         if (userService.createSupportStaffAccount(username, password, fullname, phone, department)) {
             System.out.println("Thành công: Tạo tài khoản nhân viên hỗ trợ!");
+        } else {
+            System.out.println("Lỗi: Tạo tài khoản thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    // Tạo tài khoản Admin
+    private void createAdminAccount() {
+        System.out.println("\n===== TẠO TÀI KHOẢN ADMIN =====");
+        
+        // Kiểm tra username trùng trước
+        String username = "";
+        while (true) {
+            username = InputUtil.inputUsername("Tên đăng nhập (3-20 ký tự): ");
+            if (userService.usernameExists(username)) {
+                System.out.println("Lỗi: Username đã tồn tại! Vui lòng chọn username khác.");
+            } else {
+                break;
+            }
+        }
+        
+        String password = InputUtil.inputPassword("Mật khẩu (tối thiểu 6 ký tự): ");
+        String passwordConfirm = InputUtil.inputPassword("Xác nhận mật khẩu: ");
+        
+        if (!password.equals(passwordConfirm)) {
+            System.out.println("Lỗi: Mật khẩu xác nhận không khớp!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+        
+        String fullname = InputUtil.inputFullName("Họ và tên: ");
+        String phone = InputUtil.inputPhone("Số điện thoại (10 chữ số): ");
+        String department = InputUtil.inputNonEmptyString("Phòng ban: ");
+
+        if (userService.createAdminAccount(username, password, fullname, phone, department)) {
+            System.out.println("Thành công: Tạo tài khoản admin!");
         } else {
             System.out.println("Lỗi: Tạo tài khoản thất bại!");
         }
@@ -599,9 +710,10 @@ public class AdminMenu {
             System.out.println("\n1. Xem danh sách phiếu chờ duyệt");
             System.out.println("2. Duyệt phiếu đặt");
             System.out.println("3. Từ chối phiếu đặt");
+            System.out.println("4. Phân công nhân viên hỗ trợ (phiếu APPROVED)");
             System.out.println("0. Quay lại");
 
-            int choice = InputUtil.inputChoice("\nChọn: ", 0, 3);
+            int choice = InputUtil.inputChoice("\nChọn: ", 0, 4);
 
             switch (choice) {
                 case 1:
@@ -612,6 +724,9 @@ public class AdminMenu {
                     break;
                 case 3:
                     rejectBooking();
+                    break;
+                case 4:
+                    assignSupportStaff();
                     break;
                 case 0:
                     return;
@@ -650,7 +765,7 @@ public class AdminMenu {
     }
 
     /**
-     * Duyệt phiếu đặt và phân công nhân viên hỗ trợ
+     * Duyệt phiếu đặt
      */
     private void approveBooking() {
         System.out.println("\n===== DUYỆT PHIẾU ĐẶT =====");
@@ -678,7 +793,42 @@ public class AdminMenu {
             return;
         }
 
-        // Lấy danh sách nhân viên hỗ trợ
+        if (bookingService.approveBooking(bookingId)) {
+            System.out.println("Thành công: Đã duyệt phiếu đặt. Hãy vào chức năng phân công để gán nhân viên hỗ trợ.");
+        } else {
+            System.out.println("Lỗi: Duyệt phiếu thất bại!");
+        }
+        InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+    }
+
+    /**
+     * Phân công nhân viên hỗ trợ cho phiếu đã APPROVED
+     */
+    private void assignSupportStaff() {
+        System.out.println("\n===== PHÂN CÔNG NHÂN VIÊN HỖ TRỢ =====");
+
+        List<Booking> approvedBookings = bookingService.getBookingsByStatus("APPROVED");
+        if (approvedBookings.isEmpty()) {
+            System.out.println("Không có phiếu APPROVED để phân công!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        System.out.println("Danh sách phiếu APPROVED:");
+        for (Booking b : approvedBookings) {
+            Room room = roomService.getRoomById(b.getRoomId());
+            System.out.println("   ID: " + b.getId() + " | " + (room != null ? room.getName() : "N/A") +
+                    " | Từ: " + b.getStartTime().format(dateFormatter));
+        }
+
+        int bookingId = InputUtil.inputPositiveInt("\nNhập ID phiếu cần phân công: ");
+        Booking booking = bookingService.getBookingById(bookingId);
+        if (booking == null || !"APPROVED".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Phiếu đặt không tồn tại hoặc chưa ở trạng thái APPROVED!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
         List<User> supportStaffList = userService.getAllSupportStaff();
         if (supportStaffList.isEmpty()) {
             System.out.println("Lỗi: Không có nhân viên hỗ trợ để phân công!");
@@ -691,8 +841,7 @@ public class AdminMenu {
             System.out.println("   ID: " + staff.getId() + " - " + staff.getFullname());
         }
 
-        int supportStaffId = InputUtil.inputPositiveInt("\nChọn ID nhân viên hỗ trợ để phân công: ");
-
+        int supportStaffId = InputUtil.inputPositiveInt("\nChọn ID nhân viên hỗ trợ: ");
         User selectedStaff = userService.getUserById(supportStaffId);
         if (selectedStaff == null || !"SUPPORT_STAFF".equals(selectedStaff.getRole())) {
             System.out.println("Lỗi: Nhân viên hỗ trợ không tồn tại!");
@@ -700,11 +849,10 @@ public class AdminMenu {
             return;
         }
 
-        // Duyệt phiếu và phân công
-        if (bookingService.approveBooking(bookingId, supportStaffId)) {
-            System.out.println("Thành công: Đã duyệt phiếu đặt và phân công cho " + selectedStaff.getFullname());
+        if (bookingService.assignSupportStaff(bookingId, supportStaffId)) {
+            System.out.println("Thành công: Đã phân công cho " + selectedStaff.getFullname());
         } else {
-            System.out.println("Lỗi: Duyệt phiếu thất bại!");
+            System.out.println("Lỗi: Phân công thất bại!");
         }
         InputUtil.inputString("\nNhấn Enter để tiếp tục...");
     }

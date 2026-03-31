@@ -122,6 +122,13 @@ public class ServiceService {
     }
 
     /**
+     * Lấy dịch vụ theo tên
+     */
+    public Service getServiceByName(String name) {
+        return serviceDao.getServiceByName(name);
+    }
+
+    /**
      * Lấy dịch vụ hoạt động (ACTIVE)
      */
     public List<Service> getActiveServices() {

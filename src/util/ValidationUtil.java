@@ -124,7 +124,17 @@ public class ValidationUtil {
         if (status == null) return false;
         status = status.trim().toUpperCase();
         return status.equals("PENDING") || status.equals("APPROVED") || 
-               status.equals("REJECTED") || status.equals("DONE");
+               status.equals("REJECTED") || status.equals("ASSIGNED");
+    }
+
+    /**
+     * Kiểm tra trạng thái chuẩn bị hợp lệ
+     */
+    public static boolean isValidPreparationStatus(String preparationStatus) {
+        if (preparationStatus == null) return false;
+        return preparationStatus.equals("Preparing") ||
+               preparationStatus.equals("Ready") ||
+               preparationStatus.equals("Missing Equipment");
     }
 
     /**

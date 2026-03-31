@@ -109,6 +109,13 @@ public class RoomService {
     }
 
     /**
+     * Lấy phòng theo tên
+     */
+    public Room getRoomByName(String name) {
+        return roomDao.getRoomByName(name);
+    }
+
+    /**
      * Lấy phòng khả dụng
      */
     public List<Room> getAvailableRooms() {

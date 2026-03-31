@@ -139,6 +139,13 @@ public class EquipmentService {
     }
 
     /**
+     * Lấy thiết bị theo tên
+     */
+    public Equipment getEquipmentByName(String name) {
+        return equipmentDao.getEquipmentByName(name);
+    }
+
+    /**
      * Lấy thiết bị khả dụng (ACTIVE)
      */
     public List<Equipment> getAvailableEquipment() {

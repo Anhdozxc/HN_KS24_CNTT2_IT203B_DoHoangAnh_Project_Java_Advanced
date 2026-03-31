@@ -157,6 +157,30 @@ public class UserService {
         return userDao.addUser(newUser);
     }
 
+    // Tạo tài khoản Admin
+    public boolean createAdminAccount(String username, String password, String fullname,
+                                      String phone, String department) {
+        if (!ValidationUtil.isValidUsername(username)) {
+            System.out.println("Lỗi: Username không hợp lệ");
+            return false;
+        }
+        
+        if (!ValidationUtil.isValidPassword(password)) {
+            System.out.println("Lỗi: Mật khẩu phải có ít nhất 6 ký tự");
+            return false;
+        }
+        
+        if (userDao.usernameExists(username)) {
+            System.out.println("Lỗi: Username đã tồn tại!");
+            return false;
+        }
+        
+        String hashedPassword = PasswordUtil.hashPassword(password);
+        User newUser = new User(username, hashedPassword, "ADMIN", fullname, phone, department);
+        
+        return userDao.addUser(newUser);
+    }
+
     /**
      * Lấy danh sách nhân viên hỗ trợ
      */
@@ -176,6 +200,13 @@ public class UserService {
      */
     public User getUserById(int userId) {
         return userDao.getUserById(userId);
+    }
+
+    /**
+     * Kiểm tra username đã tồn tại
+     */
+    public boolean usernameExists(String username) {
+        return userDao.usernameExists(username);
     }
 
     /**
@@ -206,5 +237,3 @@ public class UserService {
         return userDao.getTotalUsers();
     }
 }
-
-

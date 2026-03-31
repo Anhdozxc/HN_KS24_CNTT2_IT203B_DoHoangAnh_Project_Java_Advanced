@@ -109,7 +109,20 @@ public class EmployeeMenu {
         int participantCount = InputUtil.inputPositiveInt("Số người tham dự: ");
 
         // Nhập ghi chú
-        String notes = InputUtil.inputNonEmptyString("Ghi chú (có thể bỏ qua): ");
+        String notes = InputUtil.inputOptionalString("Ghi chú (có thể bỏ qua): ");
+
+        boolean roomInAvailableList = false;
+        for (Room room : availableRooms) {
+            if (room.getId() == roomId) {
+                roomInAvailableList = true;
+                break;
+            }
+        }
+        if (!roomInAvailableList) {
+            System.out.println("Lỗi: Phòng đã chọn không nằm trong danh sách phòng trống!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
 
         // Tạo booking
         int bookingId = bookingService.createBooking(
@@ -137,7 +150,7 @@ public class EmployeeMenu {
             }
 
             while (true) {
-                int equipmentId = InputUtil.inputPositiveInt("\nChọn ID thiết bị (0 để bỏ qua): ");
+                int equipmentId = InputUtil.inputNonNegativeInt("\nChọn ID thiết bị (0 để bỏ qua): ");
                 if (equipmentId == 0) break;
 
                 int quantity = InputUtil.inputPositiveInt("Số lượng: ");
@@ -164,7 +177,7 @@ public class EmployeeMenu {
             }
 
             while (true) {
-                int serviceId = InputUtil.inputPositiveInt("\nChọn ID dịch vụ (0 để bỏ qua): ");
+                int serviceId = InputUtil.inputNonNegativeInt("\nChọn ID dịch vụ (0 để bỏ qua): ");
                 if (serviceId == 0) break;
 
                 int quantity = InputUtil.inputPositiveInt("Số lượng: ");
@@ -204,12 +217,13 @@ public class EmployeeMenu {
             System.out.println("Từ: " + booking.getStartTime().format(dateFormatter));
             System.out.println("Đến: " + booking.getEndTime().format(dateFormatter));
             System.out.println("Số người: " + booking.getParticipantCount());
-            // Day 4: Hiển thị trạng thái duyệt
             System.out.println("Trạng thái duyệt: " + getApprovalStatus(booking.getStatus()));
-            // Day 4: Hiển thị trạng thái chuẩn bị (từ notes hoặc status)
-            System.out.println("Trạng thái chuẩn bị: " + getPreparationStatus(booking.getNotes()));
+            System.out.println("Trạng thái chuẩn bị: " + getPreparationStatus(booking.getPreparationStatus()));
+            if (booking.getPreparationNote() != null && !booking.getPreparationNote().isEmpty()) {
+                System.out.println("Ghi chú chuẩn bị: " + booking.getPreparationNote());
+            }
             if (booking.getNotes() != null && !booking.getNotes().isEmpty()) {
-                System.out.println("Ghi chú: " + booking.getNotes());
+                System.out.println("Ghi chú đặt phòng: " + booking.getNotes());
             }
         }
         InputUtil.inputString("\nNhấn Enter để tiếp tục...");
@@ -221,27 +235,27 @@ public class EmployeeMenu {
             return "Chờ duyệt";
         } else if ("APPROVED".equals(status)) {
             return "Đã duyệt";
+        } else if ("ASSIGNED".equals(status)) {
+            return "Đã phân công";
         } else if ("REJECTED".equals(status)) {
             return "Từ chối";
-        } else if ("DONE".equals(status)) {
-            return "Hoàn thành";
         }
         return status;
     }
 
     // Day 4: Helper method để lấy trạng thái chuẩn bị
-    private String getPreparationStatus(String notes) {
-        if (notes == null || notes.isEmpty()) {
+    private String getPreparationStatus(String preparationStatus) {
+        if (preparationStatus == null || preparationStatus.isEmpty()) {
             return "Chưa cập nhật";
         }
-        if (notes.contains("Preparing")) {
+        if (preparationStatus.equals("Preparing")) {
             return "Đang chuẩn bị";
-        } else if (notes.contains("Ready")) {
+        } else if (preparationStatus.equals("Ready")) {
             return "Sẵn sàng";
-        } else if (notes.contains("Missing Equipment")) {
+        } else if (preparationStatus.equals("Missing Equipment")) {
             return "Thiếu thiết bị";
         }
-        return notes;
+        return preparationStatus;
     }
 
     private void cancelBooking() {
@@ -249,28 +263,45 @@ public class EmployeeMenu {
         
         List<Booking> bookings = bookingService.getBookingsByUserId(currentUser.getId());
         
-        // Lọc chỉ hiển thị booking PENDING
-        List<Booking> pendingBookings = new ArrayList<>();
+        // Lọc chỉ hiển thị booking có thể hủy (PENDING, APPROVED, ASSIGNED + chưa bắt đầu)
+        List<Booking> cancellableBookings = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
         for (Booking b : bookings) {
-            if ("PENDING".equals(b.getStatus())) {
-                pendingBookings.add(b);
+            if (("PENDING".equals(b.getStatus()) || "APPROVED".equals(b.getStatus()) || "ASSIGNED".equals(b.getStatus())) &&
+                b.getStartTime().isAfter(now)) {
+                cancellableBookings.add(b);
             }
         }
         
-        if (pendingBookings.isEmpty()) {
-            System.out.println("Không có lịch đặt phòng ở trạng thái PENDING để hủy!");
+        if (cancellableBookings.isEmpty()) {
+            System.out.println("Không có lịch đặt phòng có thể hủy (chỉ hủy được trước khi cuộc họp bắt đầu)!");
             InputUtil.inputString("\nNhấn Enter để tiếp tục...");
             return;
         }
 
         System.out.println("Các lịch đặt có thể hủy:");
-        for (Booking b : pendingBookings) {
+        for (Booking b : cancellableBookings) {
             Room room = roomService.getRoomById(b.getRoomId());
             System.out.println("ID: " + b.getId() + " - " + (room != null ? room.getName() : "N/A") +
-                             " (" + b.getStartTime().format(dateFormatter) + ")");
+                             " (" + b.getStartTime().format(dateFormatter) + ") - " + getApprovalStatus(b.getStatus()));
         }
 
         int bookingId = InputUtil.inputPositiveInt("\nNhập ID lịch cần hủy: ");
+        
+        // Kiểm tra booking tồn tại và có thể hủy
+        Booking selectedBooking = null;
+        for (Booking b : cancellableBookings) {
+            if (b.getId() == bookingId) {
+                selectedBooking = b;
+                break;
+            }
+        }
+        
+        if (selectedBooking == null) {
+            System.out.println("Lỗi: Phiếu đặt không tồn tại hoặc không thể hủy!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
         
         if (bookingService.cancelBooking(bookingId)) {
             System.out.println("Thành công: Đã hủy lịch đặt phòng!");
@@ -282,11 +313,21 @@ public class EmployeeMenu {
 
     private void viewAvailableRooms() {
         System.out.println("\n===== DANH SÁCH PHÒNG KHẢ DỤNG =====");
-        
-        List<Room> rooms = roomService.getAvailableRooms();
+
+        System.out.println("Nhập khoảng thời gian cần kiểm tra (yyyy-MM-dd HH:mm)");
+        LocalDateTime startTime = InputUtil.inputDateTime("Thời gian bắt đầu: ");
+        LocalDateTime endTime = InputUtil.inputDateTime("Thời gian kết thúc: ");
+
+        if (endTime.isBefore(startTime) || endTime.isEqual(startTime)) {
+            System.out.println("Lỗi: Thời gian kết thúc phải sau thời gian bắt đầu!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
+            return;
+        }
+
+        List<Room> rooms = bookingService.getAvailableRoomsByTime(startTime, endTime);
         
         if (rooms.isEmpty()) {
-            System.out.println("\nKhông có phòng khả dụng!");
+            System.out.println("\nKhông có phòng trống trong khoảng thời gian đã chọn!");
             InputUtil.inputString("\nNhấn Enter để tiếp tục...");
             return;
         }

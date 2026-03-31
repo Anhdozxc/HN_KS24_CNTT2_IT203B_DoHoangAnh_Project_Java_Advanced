@@ -37,6 +37,10 @@ public class BookingService {
      */
     public List<Room> getAvailableRoomsByTime(LocalDateTime startTime, LocalDateTime endTime) {
         List<Room> availableRooms = new ArrayList<>();
+
+        if (!ValidationUtil.isTimeRangeValid(startTime, endTime) || !ValidationUtil.isStartTimeValid(startTime)) {
+            return availableRooms;
+        }
         
         // Lấy danh sách ID phòng trống từ DAO
         List<Integer> availableRoomIds = bookingDao.getAvailableRooms(startTime, endTime);
@@ -68,6 +72,11 @@ public class BookingService {
             System.out.println("Lỗi: Thời gian đặt không được trong quá khứ");
             return -1;
         }
+
+        if (!ValidationUtil.isPositive(participantCount)) {
+            System.out.println("Lỗi: Số người tham dự phải lớn hơn 0");
+            return -1;
+        }
         
         // Kiểm tra sức chứa phòng
         if (!roomService.isRoomCapacitySufficient(roomId, participantCount)) {
@@ -90,13 +99,28 @@ public class BookingService {
      * Thêm thiết bị vào phiếu đặt
      */
     public boolean addEquipmentToBooking(int bookingId, int equipmentId, int quantity) {
+        if (!ValidationUtil.isPositive(quantity)) {
+            System.out.println("Lỗi: Số lượng thiết bị phải lớn hơn 0");
+            return false;
+        }
+
         if (!equipmentService.isEquipmentAvailable(equipmentId, quantity)) {
             System.out.println("Lỗi: Thiết bị không đủ hoặc không hoạt động");
             return false;
         }
-        
+
+        if (!equipmentService.decreaseAvailableQuantity(equipmentId, quantity)) {
+            System.out.println("Lỗi: Không thể giữ số lượng thiết bị");
+            return false;
+        }
+
         BookingEquipmentDetail detail = new BookingEquipmentDetail(bookingId, equipmentId, quantity);
-        return bookingEquipmentDao.addBookingEquipment(detail);
+        if (!bookingEquipmentDao.addBookingEquipment(detail)) {
+            equipmentService.increaseAvailableQuantity(equipmentId, quantity);
+            return false;
+        }
+
+        return true;
     }
 
     //  THÊM DỊCH VỤ VÀO ĐẶT PHÒNG
@@ -169,26 +193,41 @@ public class BookingService {
     /**
      * Duyệt phiếu đặt (Admin)
      */
-    public boolean approveBooking(int bookingId, int supportStaffId) {
-        // Cập nhật trạng thái thành APPROVED
-        if (!bookingDao.updateBookingStatus(bookingId, "APPROVED")) {
-            System.out.println("Lỗi: Không thể duyệt phiếu đặt");
+    public boolean approveBooking(int bookingId) {
+        Booking booking = bookingDao.getBookingById(bookingId);
+        if (booking == null || !"PENDING".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Phiếu đặt không hợp lệ để duyệt");
             return false;
         }
-        
-        // Phân công nhân viên hỗ trợ
-        if (!bookingDao.assignSupportStaff(bookingId, supportStaffId)) {
-            System.out.println("Lỗi: Không thể phân công nhân viên hỗ trợ");
+        return bookingDao.updateBookingStatus(bookingId, "APPROVED");
+    }
+
+    /**
+     * Phân công nhân viên hỗ trợ (APPROVED -> ASSIGNED)
+     */
+    public boolean assignSupportStaff(int bookingId, int supportStaffId) {
+        Booking booking = bookingDao.getBookingById(bookingId);
+        if (booking == null || !"APPROVED".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Chỉ được phân công phiếu đã duyệt");
             return false;
         }
-        
-        return true;
+        return bookingDao.assignSupportStaff(bookingId, supportStaffId);
     }
 
     /**
      * Từ chối phiếu đặt (Admin)
      */
     public boolean rejectBooking(int bookingId) {
+        Booking booking = bookingDao.getBookingById(bookingId);
+        if (booking == null || !"PENDING".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Chỉ có thể từ chối phiếu ở trạng thái chờ duyệt");
+            return false;
+        }
+
+        List<BookingEquipmentDetail> details = bookingEquipmentDao.getEquipmentByBooking(bookingId);
+        for (BookingEquipmentDetail detail : details) {
+            equipmentService.increaseAvailableQuantity(detail.getEquipmentId(), detail.getQuantity());
+        }
         return bookingDao.updateBookingStatus(bookingId, "REJECTED");
     }
 
@@ -196,7 +235,7 @@ public class BookingService {
      * Hoàn thành đặt phòng
      */
     public boolean completeBooking(int bookingId) {
-        return bookingDao.updateBookingStatus(bookingId, "DONE");
+        return bookingDao.updateBookingStatus(bookingId, "ASSIGNED");
     }
 
     //  HỦY ĐẶT PHÒNG
@@ -215,6 +254,12 @@ public class BookingService {
             return false;
         }
         
+        // Trả lại thiết bị đã giữ trước khi xóa phiếu
+        List<BookingEquipmentDetail> details = bookingEquipmentDao.getEquipmentByBooking(bookingId);
+        for (BookingEquipmentDetail detail : details) {
+            equipmentService.increaseAvailableQuantity(detail.getEquipmentId(), detail.getQuantity());
+        }
+
         // Xóa thiết bị
         bookingEquipmentDao.deleteByBooking(bookingId);
         
@@ -245,6 +290,23 @@ public class BookingService {
      */
     public boolean updateNotes(int bookingId, String notes) {
         return bookingDao.updateNotes(bookingId, notes);
+    }
+
+    /**
+     * Cập nhật trạng thái chuẩn bị cho phiếu đã phân công
+     */
+    public boolean updatePreparationInfo(int bookingId, String preparationStatus, String preparationNote) {
+        if (!ValidationUtil.isValidPreparationStatus(preparationStatus)) {
+            System.out.println("Lỗi: Trạng thái chuẩn bị không hợp lệ");
+            return false;
+        }
+
+        Booking booking = bookingDao.getBookingById(bookingId);
+        if (booking == null || !"ASSIGNED".equals(booking.getStatus())) {
+            System.out.println("Lỗi: Chỉ cập nhật chuẩn bị cho phiếu đã phân công");
+            return false;
+        }
+        return bookingDao.updatePreparationInfo(bookingId, preparationStatus, preparationNote);
     }
 }
 

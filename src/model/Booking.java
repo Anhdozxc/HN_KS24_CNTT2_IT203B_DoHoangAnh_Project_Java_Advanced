@@ -1,11 +1,10 @@
 package model;
 
 import java.time.LocalDateTime;
-import java.sql.Timestamp;
 
 /**
  * Lớp đại diện cho phiếu đặt phòng
- * Trạng thái: PENDING (chờ duyệt), APPROVED (đã duyệt), REJECTED (từ chối), DONE (hoàn thành)
+ * Trạng thái: PENDING (chờ duyệt), APPROVED (đã duyệt), ASSIGNED (đã phân công), REJECTED (từ chối)
  */
 public class Booking {
     private int id;
@@ -17,6 +16,8 @@ public class Booking {
     private Integer supportStaffId;
     private Integer participantCount;
     private String notes;
+    private String preparationStatus;
+    private String preparationNote;
     private LocalDateTime createdDate;
 
     // CONSTRUCTOR
@@ -32,11 +33,14 @@ public class Booking {
         this.participantCount = participantCount;
         this.notes = notes;
         this.status = "PENDING";
+        this.preparationStatus = "Preparing";
+        this.preparationNote = "";
     }
 
     public Booking(int id, int userId, int roomId, LocalDateTime startTime, LocalDateTime endTime,
                    String status, Integer supportStaffId, Integer participantCount,
-                   String notes, LocalDateTime createdDate) {
+                   String notes, String preparationStatus, String preparationNote,
+                   LocalDateTime createdDate) {
         this.id = id;
         this.userId = userId;
         this.roomId = roomId;
@@ -46,6 +50,8 @@ public class Booking {
         this.supportStaffId = supportStaffId;
         this.participantCount = participantCount;
         this.notes = notes;
+        this.preparationStatus = preparationStatus;
+        this.preparationNote = preparationNote;
         this.createdDate = createdDate;
     }
 
@@ -84,6 +90,14 @@ public class Booking {
 
     public String getNotes() {
         return notes;
+    }
+
+    public String getPreparationStatus() {
+        return preparationStatus;
+    }
+
+    public String getPreparationNote() {
+        return preparationNote;
     }
 
     public LocalDateTime getCreatedDate() {
@@ -127,13 +141,21 @@ public class Booking {
         this.notes = notes;
     }
 
+    public void setPreparationStatus(String preparationStatus) {
+        this.preparationStatus = preparationStatus;
+    }
+
+    public void setPreparationNote(String preparationNote) {
+        this.preparationNote = preparationNote;
+    }
+
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
     }
 
     @Override
     public String toString() {
-        return "📅 Booking ID: " + id + " | Phòng: " + roomId + " | Từ: " + startTime +
+        return "Booking ID: " + id + " | Phòng: " + roomId + " | Từ: " + startTime +
                 " | Đến: " + endTime + " | Trạng thái: " + status;
     }
 }

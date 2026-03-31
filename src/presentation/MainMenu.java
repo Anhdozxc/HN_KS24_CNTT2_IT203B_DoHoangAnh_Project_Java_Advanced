@@ -53,12 +53,23 @@ public class MainMenu {
         System.out.println("  ĐĂNG KÝ TÀI KHOẢN NHÂN VIÊN");
         System.out.println("========================================");
         
-        String username = InputUtil.inputUsername("\nTên đăng nhập (3-20 ký tự): ");
+        // Kiểm tra username trùng trước
+        String username = "";
+        while (true) {
+            username = InputUtil.inputUsername("\nTên đăng nhập (3-20 ký tự): ");
+            if (userService.usernameExists(username)) {
+                System.out.println("Lỗi: Username đã tồn tại! Vui lòng chọn username khác.");
+            } else {
+                break;
+            }
+        }
+        
         String password = InputUtil.inputPasswordMasked("Mật khẩu (tối thiểu 6 ký tự): ");
         String passwordConfirm = InputUtil.inputPasswordMasked("Xác nhận mật khẩu: ");
         
         if (!password.equals(passwordConfirm)) {
             System.out.println("Lỗi: Mật khẩu xác nhận không khớp!");
+            InputUtil.inputString("\nNhấn Enter để tiếp tục...");
             return;
         }
         

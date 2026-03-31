@@ -64,6 +64,8 @@ CREATE TABLE bookings
     start_time        DATETIME NOT NULL,
     end_time          DATETIME NOT NULL,
     status            VARCHAR(20) DEFAULT 'PENDING',
+    preparation_status VARCHAR(30) DEFAULT 'Preparing',
+    preparation_note  TEXT,
     support_staff_id  INT,
     participant_count INT,
     notes             VARCHAR(255),

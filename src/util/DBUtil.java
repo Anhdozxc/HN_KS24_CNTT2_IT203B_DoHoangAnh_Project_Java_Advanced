@@ -12,10 +12,7 @@ public class DBUtil {
 
     public static Connection getConnection() {
         try {
-            // Tao ket noi den MySQL
-            Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("Kết nối database thành công!");
-            return conn;
+            return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (Exception e) {
             System.out.println("Lỗi kết nối database: " + e.getMessage());
             return null;

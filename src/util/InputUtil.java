@@ -40,6 +40,16 @@ public class InputUtil {
         }
     }
 
+    public static int inputNonNegativeInt(String prompt) {
+        while (true) {
+            int num = inputInt(prompt);
+            if (num >= 0) {
+                return num;
+            }
+            System.out.println("Lỗi: Vui lòng nhập số từ 0 trở lên!");
+        }
+    }
+
     //  NHẬP SỐ THẬP PHÂN
     public static double inputDouble(String prompt) {
         while (true) {
@@ -70,6 +80,11 @@ public class InputUtil {
         System.out.print(prompt);
         String input = scanner.nextLine().trim();
         return input;
+    }
+
+    public static String inputOptionalString(String prompt) {
+        System.out.print(prompt);
+        return scanner.nextLine().trim();
     }
 
     public static String inputNonEmptyString(String prompt) {

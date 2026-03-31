@@ -177,13 +177,15 @@ public class EquipmentDao {
      * Giảm số lượng khả dụng
      */
     public boolean decreaseAvailableQuantity(int equipmentId, int quantity) {
-        String sql = "UPDATE equipment SET available_quantity = available_quantity - ? WHERE id = ?";
+        String sql = "UPDATE equipment SET available_quantity = available_quantity - ? " +
+                     "WHERE id = ? AND available_quantity >= ?";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, quantity);
             stmt.setInt(2, equipmentId);
+            stmt.setInt(3, quantity);
             
             int rowsUpdated = stmt.executeUpdate();
             return rowsUpdated > 0;
